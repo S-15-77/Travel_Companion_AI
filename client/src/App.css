@@ -1,42 +1,262 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+:root {
+  --dark-bg: #121212;
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --text-light: #eaeaea;
+  --text-muted: #888;
+  --primary: #4a90e2;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 3rem;
+  background: var(--dark-bg);
+  border-bottom: 1px solid #222;
+  position: fixed;
+  width: 100%;
+  z-index: 10;
+}
+
+.navbar-logo {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 2rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.navbar button {
+  background: transparent;
+  color: white;
+  border: 1px solid #444;
+  padding: 0.4rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+.navbar button:hover {
+  background: var(--primary);
+}
+
+/* Hero Section */
+.hero {
+  height: 100vh;
+  background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+              url('https://images.unsplash.com/photo-1559682468-a6a29e7d9517?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  color: white;
+  padding: 0 1rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.hero-content {
+  max-width: 700px;
+  z-index: 1;
 }
 
-@keyframes logo-spin {
+.hero h1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: -0.5px;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  color: #ccc;
+  margin-bottom: 2rem;
+}
+
+.hero button {
+  background-color: #1e88e5;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.8rem;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.hero button:hover {
+  background-color: #1565c0;
+  transform: translateY(-2px);
+}
+/* Travel Form Section */
+.form-section {
+  padding: 6rem 2rem 3rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.form-card {
+  background: var(--card-bg);
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(5px);
+}
+
+.form-card h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trip-form input {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  padding: 0.75rem;
+  color: var(--text-light);
+  border-radius: 8px;
+}
+
+.trip-form button {
+  margin-top: 1rem;
+  background: var(--primary);
+  padding: 0.8rem;
+  border: none;
+  border-radius: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  color: white;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+/* Animations */
+@keyframes fadeInUp {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(20px);
   }
+
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+.fade-in {
+  animation: fadeInUp 1s ease-out;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 2rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  color: #fff;
+}
+/* Surprise Me button */
+.surprise-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.surprise-btn:hover {
+  background: #333;
+  color: white;
+}
+
+/* Itinerary card */
+.itinerary-card {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  color: #eaeaea;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.4s ease;
+}
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.card {
-  padding: 2em;
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.read-the-docs {
-  color: #888;
+/* Animation delays for hero elements */
+.hero-title {
+  animation: fadeSlideDown 1s ease forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
 }
+
+.hero-subtitle {
+  animation: fadeSlideUp 1s ease forwards;
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+
+.hero-btn {
+  animation: fadeSlideUp 1s ease forwards;
+  animation-delay: 1.4s;
+  opacity: 0;
+}
+
