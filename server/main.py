@@ -32,12 +32,14 @@ def generate_with_api(prompt: str):
     if not api_token:
         raise Exception("No API token provided")
     
-    # Try multiple models that are known to work with free tier
+    # Try multiple models that are confirmed available on HF Inference API
     models_to_try = [
-        "google/flan-t5-large",  # Good for instruction following
-        "microsoft/DialoGPT-large",  # Good for conversational responses
-        "facebook/blenderbot-400M-distill",  # Good for dialogue
-        "google/flan-t5-base"  # Fallback option
+        "gpt2",  # Always available, good for text generation
+        "distilgpt2",  # Smaller, faster version of GPT-2
+        "microsoft/DialoGPT-medium",  # Conversational model
+        "facebook/blenderbot_small-90M",  # Small dialogue model
+        "t5-small",  # Text-to-text model
+        "google/flan-t5-small"  # Instruction following model
     ]
     
     headers = {
@@ -52,19 +54,23 @@ def generate_with_api(prompt: str):
             # Use the Inference API endpoint directly
             api_url = f"https://api-inference.huggingface.co/models/{model}"
             
-            # Format prompt for instruction-following models
-            if "flan-t5" in model:
+            # Format prompt based on model type
+            if "flan-t5" in model or "t5" in model:
                 formatted_prompt = f"Generate a travel itinerary: {prompt}"
+            elif "gpt" in model:
+                formatted_prompt = f"Travel Itinerary Request:\n{prompt}\n\nDetailed Itinerary:"
             else:
                 formatted_prompt = prompt
             
             payload = {
                 "inputs": formatted_prompt,
                 "parameters": {
-                    "max_new_tokens": 300,
+                    "max_length": 500,
+                    "max_new_tokens": 400,
                     "temperature": 0.7,
                     "do_sample": True,
-                    "return_full_text": False
+                    "return_full_text": False,
+                    "pad_token_id": 50256
                 }
             }
             
@@ -220,10 +226,11 @@ def test_models():
         return {"error": "No API token provided"}
     
     models_to_test = [
-        "google/flan-t5-large",
-        "google/flan-t5-base", 
-        "microsoft/DialoGPT-large",
-        "facebook/blenderbot-400M-distill",
+        "gpt2",
+        "distilgpt2",
+        "microsoft/DialoGPT-medium",
+        "facebook/blenderbot_small-90M",
+        "t5-small",
         "google/flan-t5-small"
     ]
     
