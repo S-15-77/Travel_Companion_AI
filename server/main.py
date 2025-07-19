@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from huggingface_hub import InferenceClient
 import os
 from dotenv import load_dotenv
 import requests
 import json
+import time
 
 load_dotenv()
 
@@ -25,110 +25,78 @@ class TripRequest(BaseModel):
     days: int
     interests: str
 
-def generate_with_api(prompt: str):
-    """Use direct API calls to Hugging Face Inference API"""
+def query_huggingface_model(prompt: str):
+    """Simple query to Hugging Face Inference API"""
     api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
     
     if not api_token:
         raise Exception("No API token provided")
     
-    # Try multiple models that are confirmed available on HF Inference API
-    models_to_try = [
-        "gpt2",  # Always available, good for text generation
-        "distilgpt2",  # Smaller, faster version of GPT-2
-        "microsoft/DialoGPT-medium",  # Conversational model
-        "facebook/blenderbot_small-90M",  # Small dialogue model
-        "t5-small",  # Text-to-text model
-        "google/flan-t5-small"  # Instruction following model
-    ]
+    # Use the most basic, reliable model
+    API_URL = "https://api-inference.huggingface.co/models/gpt2"
+    headers = {"Authorization": f"Bearer {api_token}"}
     
-    headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/json"
+    # Simple payload
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_length": 200,
+            "temperature": 0.7,
+            "do_sample": True
+        }
     }
     
-    for model in models_to_try:
-        try:
-            print(f"🔄 Trying model: {model}")
+    print(f"🔄 Making request to: {API_URL}")
+    print(f"📝 Prompt: {prompt[:100]}...")
+    
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+        print(f"📊 Response status: {response.status_code}")
+        print(f"📄 Response headers: {dict(response.headers)}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Success! Response: {result}")
             
-            # Use the Inference API endpoint directly
-            api_url = f"https://api-inference.huggingface.co/models/{model}"
-            
-            # Format prompt based on model type
-            if "flan-t5" in model or "t5" in model:
-                formatted_prompt = f"Generate a travel itinerary: {prompt}"
-            elif "gpt" in model:
-                formatted_prompt = f"Travel Itinerary Request:\n{prompt}\n\nDetailed Itinerary:"
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get("generated_text", "No text generated")
+            elif isinstance(result, dict):
+                return result.get("generated_text", "No text generated")
             else:
-                formatted_prompt = prompt
-            
-            payload = {
-                "inputs": formatted_prompt,
-                "parameters": {
-                    "max_length": 500,
-                    "max_new_tokens": 400,
-                    "temperature": 0.7,
-                    "do_sample": True,
-                    "return_full_text": False,
-                    "pad_token_id": 50256
-                }
-            }
-            
-            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
-            
+                return str(result)
+        
+        elif response.status_code == 503:
+            print("⏳ Model is loading, waiting 20 seconds...")
+            time.sleep(20)
+            # Try again after waiting
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Success with {model}")
-                print(f"Response: {result}")
-                
-                # Handle different response formats
                 if isinstance(result, list) and len(result) > 0:
-                    if "generated_text" in result[0]:
-                        return result[0]["generated_text"]
-                    elif "text" in result[0]:
-                        return result[0]["text"]
-                elif isinstance(result, dict):
-                    if "generated_text" in result:
-                        return result["generated_text"]
-                    elif "text" in result:
-                        return result["text"]
-                
-                return str(result)  # Fallback to string representation
-                
-            else:
-                print(f"❌ Failed with {model}: {response.status_code} - {response.text}")
-                continue
-                
-        except Exception as e:
-            print(f"❌ Error with {model}: {str(e)}")
-            continue
-    
-    # If all models fail, raise an exception
-    raise Exception("All models failed to generate response")
+                    return result[0].get("generated_text", "No text generated")
+                return str(result)
+        
+        print(f"❌ API Error: {response.status_code}")
+        print(f"❌ Response text: {response.text}")
+        raise Exception(f"API returned {response.status_code}: {response.text}")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {str(e)}")
+        raise Exception(f"Request failed: {str(e)}")
 
 @app.post("/plan-trip")
 def plan_trip(req: TripRequest):
-    # Create a structured prompt
-    prompt = f"""Plan a detailed {req.days}-day travel itinerary for {req.destination}.
-
-Traveler interests: {req.interests}
-
-Please include:
-- Daily activities and attractions
-- Local food recommendations
-- Cultural experiences
-- Practical travel tips
-
-Format the response as a day-by-day guide."""
+    # Create a simple, clear prompt
+    prompt = f"Travel itinerary for {req.destination} for {req.days} days. Interests: {req.interests}. Day 1:"
 
     try:
         print(f"📨 Generating itinerary for {req.destination}")
         print(f"🔑 API Token: {'✅ Set' if os.getenv('HUGGINGFACEHUB_API_TOKEN') else '❌ Missing'}")
         
         # Try to generate with Hugging Face API
-        output = generate_with_api(prompt)
+        output = query_huggingface_model(prompt)
         
-        print(f"✅ Generated output: {output[:200]}...")
+        print(f"✅ Generated output: {output}")
 
         return {
             "destination": req.destination,
@@ -173,7 +141,7 @@ Format the response as a day-by-day guide."""
 • Respect local customs and traditions
 • Keep copies of important documents
 
-*Note: This is a template itinerary. For AI-generated personalized recommendations, please ensure your Hugging Face API token is properly configured.*"""
+*Note: This is a template itinerary. API Error: {str(e)}*"""
 
         return {
             "destination": req.destination,
@@ -186,77 +154,49 @@ Format the response as a day-by-day guide."""
 def read_root():
     return {"message": "Travel Companion AI Backend is running!"}
 
-@app.get("/test-api")
-def test_api():
-    """Test endpoint to check if Hugging Face API is working"""
+@app.get("/test-token")
+def test_token():
+    """Test if the API token is working with a simple request"""
+    api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    
+    if not api_token:
+        return {"error": "No API token found in environment variables"}
+    
+    # Test with the simplest possible request
+    API_URL = "https://api-inference.huggingface.co/models/gpt2"
+    headers = {"Authorization": f"Bearer {api_token}"}
+    
+    payload = {
+        "inputs": "Hello",
+        "parameters": {"max_length": 50}
+    }
+    
     try:
-        token_status = "✅ Set" if os.getenv("HUGGINGFACEHUB_API_TOKEN") else "❌ Missing"
-        
-        if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
-            return {
-                "status": "error",
-                "token_status": token_status,
-                "error": "No API token provided"
-            }
-        
-        # Test with a simple prompt
-        test_output = generate_with_api("Hello, please respond with a short greeting.")
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
         
         return {
-            "status": "success",
-            "token_status": token_status,
-            "test_response": test_output,
-            "message": "API is working correctly!"
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "response": response.text,
+            "token_length": len(api_token),
+            "token_prefix": api_token[:10] + "..." if len(api_token) > 10 else api_token
         }
         
     except Exception as e:
         return {
-            "status": "error",
-            "token_status": "✅ Set" if os.getenv("HUGGINGFACEHUB_API_TOKEN") else "❌ Missing",
             "error": str(e),
-            "message": "API test failed - check your token and try again"
+            "token_length": len(api_token),
+            "token_prefix": api_token[:10] + "..." if len(api_token) > 10 else api_token
         }
 
-@app.get("/test-models")
-def test_models():
-    """Test multiple models to see which ones work"""
-    api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-    
-    if not api_token:
-        return {"error": "No API token provided"}
-    
-    models_to_test = [
-        "gpt2",
-        "distilgpt2",
-        "microsoft/DialoGPT-medium",
-        "facebook/blenderbot_small-90M",
-        "t5-small",
-        "google/flan-t5-small"
-    ]
-    
-    results = {}
-    
-    for model in models_to_test:
-        try:
-            headers = {
-                "Authorization": f"Bearer {api_token}",
-                "Content-Type": "application/json"
-            }
-            
-            api_url = f"https://api-inference.huggingface.co/models/{model}"
-            payload = {
-                "inputs": "Say hello",
-                "parameters": {"max_new_tokens": 50}
-            }
-            
-            response = requests.post(api_url, headers=headers, json=payload, timeout=15)
-            
-            if response.status_code == 200:
-                results[model] = {"status": "✅ Working", "response": response.json()}
-            else:
-                results[model] = {"status": f"❌ Failed ({response.status_code})", "error": response.text}
-                
-        except Exception as e:
-            results[model] = {"status": "❌ Error", "error": str(e)}
-    
-    return {"model_test_results": results}
+@app.get("/check-model")
+def check_model():
+    """Check if the GPT-2 model is available"""
+    try:
+        response = requests.get("https://api-inference.huggingface.co/models/gpt2", timeout=10)
+        return {
+            "model_status": response.status_code,
+            "model_info": response.json() if response.status_code == 200 else response.text
+        }
+    except Exception as e:
+        return {"error": str(e)}
