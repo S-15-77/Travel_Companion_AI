@@ -25,49 +25,12 @@ a {
   min-height: 100vh;
 }
 
-/* Navbar */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 3rem;
-  background: var(--dark-bg);
-  border-bottom: 1px solid #222;
-  position: fixed;
-  width: 100%;
-  z-index: 10;
-}
-
-.navbar-logo {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.navbar-links {
-  display: flex;
-  gap: 2rem;
-  font-size: 0.95rem;
-  color: var(--text-muted);
-}
-
-.navbar button {
-  background: transparent;
-  color: white;
-  border: 1px solid #444;
-  padding: 0.4rem 1rem;
-  border-radius: 25px;
-  cursor: pointer;
-}
-
-.navbar button:hover {
-  background: var(--primary);
-}
-
 /* Hero Section */
 .hero {
   height: 100vh;
-  background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
-              url('https://images.unsplash.com/photo-1559682468-a6a29e7d9517?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+              url('https://images.unsplash.com/photo-1559682468-a6a29e7d9517?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') 
+              center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,7 +66,7 @@ a {
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
@@ -111,19 +74,64 @@ a {
   background-color: #1565c0;
   transform: translateY(-2px);
 }
-/* Travel Form Section */
+
+/* Hero Animations */
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-title {
+  animation: fadeSlideDown 1s ease forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.hero-subtitle {
+  animation: fadeSlideUp 1s ease forwards;
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+
+.hero-btn {
+  animation: fadeSlideUp 1s ease forwards;
+  animation-delay: 1.4s;
+  opacity: 0;
+}
+
+/* Form Section */
 .form-section {
   padding: 6rem 2rem 3rem;
   max-width: 700px;
   margin: 0 auto;
 }
 
-.form-card {
+.form-card,
+.glass-card {
   background: var(--card-bg);
-  border: 1px solid #333;
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
   padding: 2rem;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: #fff;
 }
 
 .form-card h2 {
@@ -156,39 +164,7 @@ a {
   color: white;
 }
 
-/* Footer */
-.footer {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeInUp 1s ease-out;
-}
-.glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 2rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  color: #fff;
-}
-/* Surprise Me button */
+/* Surprise Me Button */
 .surprise-btn {
   background: transparent;
   border: 1px solid #555;
@@ -205,7 +181,7 @@ a {
   color: white;
 }
 
-/* Itinerary card */
+/* Itinerary Response Card */
 .itinerary-card {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -213,50 +189,30 @@ a {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   color: #eaeaea;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.4s ease;
 }
-@keyframes fadeSlideDown {
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+/* Fade-in Utility */
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fade-in {
+  animation: fadeInUp 1s ease-out;
 }
-
-/* Animation delays for hero elements */
-.hero-title {
-  animation: fadeSlideDown 1s ease forwards;
-  animation-delay: 0.2s;
-  opacity: 0;
-}
-
-.hero-subtitle {
-  animation: fadeSlideUp 1s ease forwards;
-  animation-delay: 0.8s;
-  opacity: 0;
-}
-
-.hero-btn {
-  animation: fadeSlideUp 1s ease forwards;
-  animation-delay: 1.4s;
-  opacity: 0;
-}
-

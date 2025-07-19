@@ -6,11 +6,10 @@ function TravelForm() {
   const [days, setDays] = useState('');
   const [interests, setInterests] = useState('');
   const [response, setResponse] = useState(null);
-  const [randomDays, setRandomDays] = useState(5);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setResponse('Loading...');
     try {
         const res = await axios.post('http://localhost:8000/plan-trip', {
         destination,

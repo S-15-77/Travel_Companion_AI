@@ -1,0 +1,37 @@
+/* 📱 Mobile Responsive Layout */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  .hero button {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .form-section {
+    padding: 3rem 1rem;
+  }
+
+  .form-card,
+  .glass-card,
+  .itinerary-card {
+    padding: 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .trip-form input,
+  .trip-form button,
+  .surprise-btn {
+    font-size: 0.95rem;
+  }
+
+  .footer {
+    font-size: 0.85rem;
+    padding: 1.5rem;
+  }
+}
