@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from huggingface_hub import InferenceClient
 import os
 from dotenv import load_dotenv
+import requests
+import json
 
 load_dotenv()
 
@@ -18,71 +20,159 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Use a more reliable model for text generation
-client = InferenceClient(
-    model="microsoft/DialoGPT-medium",
-    token=os.getenv("HUGGINGFACEHUB_API_TOKEN")
-)
-
 class TripRequest(BaseModel):
     destination: str
     days: int
     interests: str
 
+def generate_with_api(prompt: str):
+    """Use direct API calls to Hugging Face Inference API"""
+    api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    
+    if not api_token:
+        raise Exception("No API token provided")
+    
+    # Try multiple models that are known to work with free tier
+    models_to_try = [
+        "google/flan-t5-large",  # Good for instruction following
+        "microsoft/DialoGPT-large",  # Good for conversational responses
+        "facebook/blenderbot-400M-distill",  # Good for dialogue
+        "google/flan-t5-base"  # Fallback option
+    ]
+    
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    
+    for model in models_to_try:
+        try:
+            print(f"🔄 Trying model: {model}")
+            
+            # Use the Inference API endpoint directly
+            api_url = f"https://api-inference.huggingface.co/models/{model}"
+            
+            # Format prompt for instruction-following models
+            if "flan-t5" in model:
+                formatted_prompt = f"Generate a travel itinerary: {prompt}"
+            else:
+                formatted_prompt = prompt
+            
+            payload = {
+                "inputs": formatted_prompt,
+                "parameters": {
+                    "max_new_tokens": 300,
+                    "temperature": 0.7,
+                    "do_sample": True,
+                    "return_full_text": False
+                }
+            }
+            
+            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"✅ Success with {model}")
+                print(f"Response: {result}")
+                
+                # Handle different response formats
+                if isinstance(result, list) and len(result) > 0:
+                    if "generated_text" in result[0]:
+                        return result[0]["generated_text"]
+                    elif "text" in result[0]:
+                        return result[0]["text"]
+                elif isinstance(result, dict):
+                    if "generated_text" in result:
+                        return result["generated_text"]
+                    elif "text" in result:
+                        return result["text"]
+                
+                return str(result)  # Fallback to string representation
+                
+            else:
+                print(f"❌ Failed with {model}: {response.status_code} - {response.text}")
+                continue
+                
+        except Exception as e:
+            print(f"❌ Error with {model}: {str(e)}")
+            continue
+    
+    # If all models fail, raise an exception
+    raise Exception("All models failed to generate response")
+
 @app.post("/plan-trip")
 def plan_trip(req: TripRequest):
-    # Create a more structured prompt
-    prompt = f"Plan a {req.days}-day trip to {req.destination}. Interests: {req.interests}. Include activities, food, and culture recommendations."
+    # Create a structured prompt
+    prompt = f"""Plan a detailed {req.days}-day travel itinerary for {req.destination}.
+
+Traveler interests: {req.interests}
+
+Please include:
+- Daily activities and attractions
+- Local food recommendations
+- Cultural experiences
+- Practical travel tips
+
+Format the response as a day-by-day guide."""
 
     try:
-        print(f"📨 Prompt:\n{prompt}\n")
-        print(f"🔑 Using API Token: {'✅ Set' if os.getenv('HUGGINGFACEHUB_API_TOKEN') else '❌ Missing'}")
+        print(f"📨 Generating itinerary for {req.destination}")
+        print(f"🔑 API Token: {'✅ Set' if os.getenv('HUGGINGFACEHUB_API_TOKEN') else '❌ Missing'}")
         
-        # Use the chat completion method which is more reliable
-        response = client.chat_completion(
-            messages=[
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
-            ],
-            max_tokens=300,
-            temperature=0.7
-        )
+        # Try to generate with Hugging Face API
+        output = generate_with_api(prompt)
         
-        # Extract the message content
-        if response and response.choices and len(response.choices) > 0:
-            output = response.choices[0].message.content
-        else:
-            output = "I'd be happy to help plan your trip! Here's a sample itinerary for your consideration."
-        
-        print(f"✅ Output:\n{output}\n")
+        print(f"✅ Generated output: {output[:200]}...")
 
         return {
             "destination": req.destination,
             "days": req.days,
-            "interests": req.interests.split(","),
+            "interests": req.interests.split(",") if isinstance(req.interests, str) else req.interests,
             "message": output
         }
 
     except Exception as e:
-        print(f"❌ Error: {repr(e)}")
+        print(f"❌ Error: {str(e)}")
         
-        # Fallback response when API fails
-        fallback_message = f"""Here's a suggested {req.days}-day itinerary for {req.destination}:
+        # Enhanced fallback response
+        interests_list = req.interests.split(",") if isinstance(req.interests, str) else [req.interests]
+        interests_formatted = ", ".join([interest.strip() for interest in interests_list])
+        
+        fallback_message = f"""🌟 **{req.days}-Day {req.destination} Travel Itinerary**
 
-🗓️ **Day 1-2**: Explore the main attractions and get oriented with the local culture
-🍽️ **Food**: Try local specialties and visit recommended restaurants
-🎯 **Activities**: Focus on {req.interests} based on your interests
-🏛️ **Culture**: Visit museums, historical sites, and local markets
-🌟 **Tips**: Book accommodations in advance and learn basic local phrases
+**Your Interests:** {interests_formatted}
 
-This is a sample itinerary. For a personalized plan, please ensure your Hugging Face API token is properly configured."""
+**Day 1: Arrival & Orientation**
+• Arrive and check into accommodation
+• Take a walking tour of the main area
+• Try local cuisine at a recommended restaurant
+• Visit a nearby attraction to get oriented
+
+**Day 2-{max(2, req.days-1)}: Explore & Experience**
+• Focus on attractions related to your interests: {interests_formatted}
+• Visit local markets and cultural sites
+• Take part in authentic local experiences
+• Enjoy regional specialties and local dining
+
+**Day {req.days}: Final Exploration**
+• Visit any missed must-see attractions
+• Shop for souvenirs and local products
+• Enjoy a farewell meal featuring local cuisine
+• Prepare for departure
+
+**💡 Travel Tips:**
+• Book popular attractions in advance
+• Learn basic local phrases
+• Try street food and local markets
+• Respect local customs and traditions
+• Keep copies of important documents
+
+*Note: This is a template itinerary. For AI-generated personalized recommendations, please ensure your Hugging Face API token is properly configured.*"""
 
         return {
             "destination": req.destination,
             "days": req.days,
-            "interests": req.interests.split(","),
+            "interests": interests_list,
             "message": fallback_message
         }
 
@@ -96,20 +186,70 @@ def test_api():
     try:
         token_status = "✅ Set" if os.getenv("HUGGINGFACEHUB_API_TOKEN") else "❌ Missing"
         
-        # Simple test prompt
-        test_response = client.chat_completion(
-            messages=[{"role": "user", "content": "Hello, how are you?"}],
-            max_tokens=50
-        )
+        if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
+            return {
+                "status": "error",
+                "token_status": token_status,
+                "error": "No API token provided"
+            }
+        
+        # Test with a simple prompt
+        test_output = generate_with_api("Hello, please respond with a short greeting.")
         
         return {
             "status": "success",
             "token_status": token_status,
-            "test_response": test_response.choices[0].message.content if test_response.choices else "No response"
+            "test_response": test_output,
+            "message": "API is working correctly!"
         }
+        
     except Exception as e:
         return {
             "status": "error",
-            "token_status": token_status,
-            "error": str(e)
+            "token_status": "✅ Set" if os.getenv("HUGGINGFACEHUB_API_TOKEN") else "❌ Missing",
+            "error": str(e),
+            "message": "API test failed - check your token and try again"
         }
+
+@app.get("/test-models")
+def test_models():
+    """Test multiple models to see which ones work"""
+    api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    
+    if not api_token:
+        return {"error": "No API token provided"}
+    
+    models_to_test = [
+        "google/flan-t5-large",
+        "google/flan-t5-base", 
+        "microsoft/DialoGPT-large",
+        "facebook/blenderbot-400M-distill",
+        "google/flan-t5-small"
+    ]
+    
+    results = {}
+    
+    for model in models_to_test:
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            api_url = f"https://api-inference.huggingface.co/models/{model}"
+            payload = {
+                "inputs": "Say hello",
+                "parameters": {"max_new_tokens": 50}
+            }
+            
+            response = requests.post(api_url, headers=headers, json=payload, timeout=15)
+            
+            if response.status_code == 200:
+                results[model] = {"status": "✅ Working", "response": response.json()}
+            else:
+                results[model] = {"status": f"❌ Failed ({response.status_code})", "error": response.text}
+                
+        except Exception as e:
+            results[model] = {"status": "❌ Error", "error": str(e)}
+    
+    return {"model_test_results": results}
